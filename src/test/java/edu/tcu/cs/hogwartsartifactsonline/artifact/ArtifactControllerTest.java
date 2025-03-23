@@ -1,10 +1,14 @@
 package edu.tcu.cs.hogwartsartifactsonline.artifact;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import edu.tcu.cs.hogwartsartifactsonline.artifact.dto.ArtifactDto;
 import edu.tcu.cs.hogwartsartifactsonline.system.StatusCode;
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -22,6 +26,7 @@ import java.util.List;
 
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
 
@@ -34,6 +39,9 @@ class ArtifactControllerTest {
 
     @MockitoBean
     ArtifactService artifactService;
+
+    @Autowired
+    ObjectMapper objectMapper;
 
     List<Artifact> artifacts;
 
@@ -89,7 +97,7 @@ class ArtifactControllerTest {
     }
 
     @Test
-    void testfindArtifactByIdSuccess() throws Exception {
+    void testFindArtifactByIdSuccess() throws Exception {
         // Given
         given(this.artifactService.findById("1250808601744904191")).willReturn(this.artifacts.get(0));
 
@@ -107,7 +115,7 @@ class ArtifactControllerTest {
     }
 
     @Test
-    void testfindArtifactByIdNotFound() throws Exception {
+    void testFindArtifactByIdNotFound() throws Exception {
         // Given
         given(this.artifactService.findById("1250808601744904191")).willThrow(new ArtifactNotFoundException("1250808601744904191"));
 
@@ -119,6 +127,54 @@ class ArtifactControllerTest {
                 .andExpect(jsonPath("$.message").value("Could not find artifact with Id " + "1250808601744904191" + " :("))
                 .andExpect(jsonPath("$.data").isEmpty());
 
+    }
+
+    @Test
+    void testFindAllArtifactsSuccess() throws Exception {
+        // Given
+        given(this.artifactService.findAll()).willReturn(this.artifacts);
+
+        // When and Then
+        this.mockMvc.perform(get("/api/v1/artifacts").accept(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.flag").value(true))
+                .andExpect(jsonPath("$.code").value(StatusCode.SUCCESS))
+                .andExpect(jsonPath("$.message").value("Find All Success"))
+                .andExpect(jsonPath("$.data").value(Matchers.hasSize(this.artifacts.size())))
+                .andExpect(jsonPath("$.data[0].id").value("1250808601744904191"))
+                .andExpect(jsonPath("$.data[0].name").value("Deluminator"))
+                .andExpect(jsonPath("$.data[1].id").value("1250808601744904192"))
+                .andExpect(jsonPath("$.data[1].name").value("Invisibility Cloak"));
+    }
+
+    @Test
+    void testSaveSuccess() throws Exception {
+        // Given
+        ArtifactDto newArtifactDto = new ArtifactDto(null,
+                "Remembrall",
+                "A Remembrall was a magical large marble-sized glass ball that contained smoke which turned red when its owner or user had forgotten something. It turned clear once whatever was forgotten was remembered",
+                "imageUrl",
+                null
+        );
+
+        String json = this.objectMapper.writeValueAsString(newArtifactDto);
+
+        Artifact savedArtifact = new Artifact();
+        savedArtifact.setId("1250808601744904197");
+        savedArtifact.setName("Remembrall");
+        savedArtifact.setDescription("A Remembrall was a magical large marble-sized glass ball that contained smoke which turned red when its owner or user had forgotten something. It turned clear once whatever was forgotten was remembered");
+        savedArtifact.setImageUrl("imageUrl");
+
+        given(this.artifactService.save(Mockito.any(Artifact.class))).willReturn(savedArtifact);
+
+        // When and Then
+        this.mockMvc.perform(post("/api/v1/artifacts").contentType(MediaType.APPLICATION_JSON).content(json).accept(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.flag").value(true))
+                .andExpect(jsonPath("$.code").value(StatusCode.SUCCESS))
+                .andExpect(jsonPath("$.message").value("Add Success"))
+                .andExpect(jsonPath("$.data.id").isNotEmpty())
+                .andExpect(jsonPath("$.data.name").value(savedArtifact.getName()))
+                .andExpect(jsonPath("$.data.description").value(savedArtifact.getDescription()))
+                .andExpect(jsonPath("$.data.imageUrl").value(savedArtifact.getImageUrl()));
 
 
     }
