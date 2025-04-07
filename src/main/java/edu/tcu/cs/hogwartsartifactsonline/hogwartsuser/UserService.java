@@ -7,6 +7,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import jakarta.transaction.Transactional;
+import edu.tcu.cs.hogwartsartifactsonline.hogwartsuser.MyUserPrincipal;
 
 import java.util.List;
 
@@ -55,7 +56,7 @@ public class UserService implements UserDetailsService {
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         return this.userRepository.findByUsername(username)
-                .map(user -> new MyUserPrinciple(user))
+                .map(user -> new MyUserPrincipal(user))
                 .orElseThrow(() -> new UsernameNotFoundException("username " + username + " is not found."));
     }
 }
